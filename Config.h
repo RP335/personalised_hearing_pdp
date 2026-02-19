@@ -33,7 +33,7 @@ constexpr int AUDIO_MEM_F32 = 60;     // F32 processing blocks
 //   TYMPAN_INPUT_ON_BOARD_MIC     — MEMS microphones on Tympan PCB
 //   TYMPAN_INPUT_JACK_AS_MIC      — 3.5 mm jack, mic level + bias
 #define DEFAULT_INPUT_SOURCE TYMPAN_INPUT_JACK_AS_LINEIN
-constexpr float DEFAULT_INPUT_GAIN_DB = 15.0f; // ADC PGA gain (0–47.5 dB)
+constexpr float DEFAULT_INPUT_GAIN_DB = 0.0f; // ADC PGA gain (0–47.5 dB)
 constexpr float DEFAULT_HEADPHONE_DB = 0.0f;   // headphone amp initial volume
 
 // ============================================================================
@@ -74,7 +74,7 @@ constexpr float WDRC_EXP_CR = 1.0f; // expansion ratio (1 = off)
 constexpr float WDRC_EXP_END_KNEE = 0.0f;
 constexpr float WDRC_CR_ACTIVE = 2.0f;  // compression ratio when active
 constexpr float WDRC_CR_BYPASS = 1.0f;  // unity (linear) when bypassed
-constexpr float WDRC_TK_ACTIVE = 40.0f; // compression knee (dB SPL)
+constexpr float WDRC_TK_ACTIVE = 65.0f; // compression knee (dB SPL)
 constexpr float WDRC_TK_BYPASS = 55.0f;
 constexpr float WDRC_BOLT_ACTIVE = 95.0f; // per-band output limit (dB SPL)
 constexpr float WDRC_BOLT_BYPASS = 90.0f;
@@ -97,7 +97,7 @@ struct DSPFlags {
   bool preGainEnabled; // input pre-gain stage
 
   DSPFlags()
-      : nalrEnabled(true), wdrcEnabled(false), limiterEnabled(false),
+      : nalrEnabled(true), wdrcEnabled(false), limiterEnabled(true),
         preGainEnabled(true) {}
 };
 

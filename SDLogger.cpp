@@ -8,23 +8,24 @@
 #include "AudioGraph.h"
 #include "Metrics.h"
 #include <SD.h>
+#include <TimeLib.h>
 
 // ============================================================================
 // STATE
 // ============================================================================
 
-static bool     sdAvailable     = false;
-static bool     logging         = false;
-static File     logFile;
-static char     logFilename[SD_MAX_FILENAME + 16];
-static unsigned long lastLogWrite  = 0;
+static bool sdAvailable = false;
+static bool logging = false;
+static File logFile;
+static char logFilename[SD_MAX_FILENAME + 16];
+static unsigned long lastLogWrite = 0;
 static unsigned long lastPurgeCheck = 0;
-static uint32_t bootID          = 0;
+static uint32_t bootID = 0;
 
 // Track files for enumeration
 #define MAX_LOG_FILES 64
 static char fileList[MAX_LOG_FILES][SD_MAX_FILENAME];
-static int  fileCount = 0;
+static int fileCount = 0;
 
 // ============================================================================
 // HELPERS
@@ -45,30 +46,45 @@ static void writeCSVHeader(File &f) {
 }
 
 static void writeCSVRow(File &f, const MetricsSnapshot &m) {
-  f.print(m.timestampMs);      f.print(',');
-  f.print(m.splFast_dBA, 1);   f.print(',');
-  f.print(m.splSlow_dBA, 1);   f.print(',');
-  f.print(m.laeq1min_dBA, 1);  f.print(',');
-  f.print(m.laeq1hr_dBA, 1);   f.print(',');
-  f.print(m.peakSPL_dBA, 1);   f.print(',');
-  f.print(m.noiseDosePct, 2);  f.print(',');
-  f.print(m.projectedDose8hr, 1); f.print(',');
+  if (timeStatus() == timeSet) {
+    f.print(now()); // Unix timestamp if time is set
+  } else {
+    f.print(m.timestampMs); // Fallback to millis
+  }
+  f.print(',');
+  f.print(m.splFast_dBA, 1);
+  f.print(',');
+  f.print(m.splSlow_dBA, 1);
+  f.print(',');
+  f.print(m.laeq1min_dBA, 1);
+  f.print(',');
+  f.print(m.laeq1hr_dBA, 1);
+  f.print(',');
+  f.print(m.peakSPL_dBA, 1);
+  f.print(',');
+  f.print(m.noiseDosePct, 2);
+  f.print(',');
+  f.print(m.projectedDose8hr, 1);
+  f.print(',');
   for (int i = 0; i < N_CHAN; i++) {
     f.print(m.bandLevels[i], 1);
     f.print(',');
   }
-  f.print(m.cpuPercent, 1);    f.print(',');
+  f.print(m.cpuPercent, 1);
+  f.print(',');
   f.println(m.memUsed);
 }
 
 static void refreshFileList() {
   fileCount = 0;
   File dir = SD.open(SD_LOG_DIR);
-  if (!dir) return;
+  if (!dir)
+    return;
 
   while (fileCount < MAX_LOG_FILES) {
     File entry = dir.openNextFile();
-    if (!entry) break;
+    if (!entry)
+      break;
     if (!entry.isDirectory()) {
       strncpy(fileList[fileCount], entry.name(), SD_MAX_FILENAME - 1);
       fileList[fileCount][SD_MAX_FILENAME - 1] = '\0';
@@ -86,7 +102,7 @@ static void refreshFileList() {
 void sdLoggerInit() {
   // Teensy 4.1 built-in SD — typically initialised by Tympan library.
   // We just check if it's accessible.
-  if (SD.begin()) {    // uses built-in SDIO on Teensy 4.1
+  if (SD.begin(BUILTIN_SDCARD)) { // uses built-in SDIO on Teensy 4.1
     sdAvailable = true;
     ensureLogDir();
     refreshFileList();
@@ -111,15 +127,14 @@ void sdLoggerStart(const char *userUID) {
     myTympan.println("[SD] Cannot start — no card");
     return;
   }
-  if (logging) sdLoggerStop();  // close any open file first
+  if (logging)
+    sdLoggerStop(); // close any open file first
 
   ensureLogDir();
 
   // Filename: /logs/AABBCCDD_B1234.csv
-  snprintf(logFilename, sizeof(logFilename),
-           SD_LOG_DIR "/%s_B%04X.csv",
-           (userUID && userUID[0]) ? userUID : "UNKNOWN",
-           (unsigned int)bootID);
+  snprintf(logFilename, sizeof(logFilename), SD_LOG_DIR "/%s_B%04X.csv",
+           (userUID && userUID[0]) ? userUID : "UNKNOWN", (unsigned int)bootID);
 
   logFile = SD.open(logFilename, FILE_WRITE);
   if (!logFile) {
@@ -152,7 +167,8 @@ bool sdLoggerIsActive() { return logging; }
 // ============================================================================
 
 void sdLoggerService(unsigned long nowMs) {
-  if (!sdAvailable) return;
+  if (!sdAvailable)
+    return;
 
   // --- Write metrics row ---
   if (logging && (nowMs - lastLogWrite >= SD_LOG_INTERVAL_MS)) {
@@ -203,19 +219,21 @@ int sdLoggerGetFileCount() {
 }
 
 bool sdLoggerGetFileName(int index, char *buf, int bufLen) {
-  if (index < 0 || index >= fileCount) return false;
+  if (index < 0 || index >= fileCount)
+    return false;
   strncpy(buf, fileList[index], bufLen - 1);
   buf[bufLen - 1] = '\0';
   return true;
 }
 
-int sdLoggerReadFileChunk(const char *filename, uint32_t offset,
-                           uint8_t *buf, int maxLen) {
+int sdLoggerReadFileChunk(const char *filename, uint32_t offset, uint8_t *buf,
+                          int maxLen) {
   char fullPath[64];
   snprintf(fullPath, sizeof(fullPath), SD_LOG_DIR "/%s", filename);
 
   File f = SD.open(fullPath, FILE_READ);
-  if (!f) return -1;
+  if (!f)
+    return -1;
 
   if (!f.seek(offset)) {
     f.close();
@@ -240,7 +258,8 @@ void sdLoggerPurgeOld(unsigned long nowMs) {
   // Simple strategy: if more than MAX_LOG_FILES/2 files, delete oldest ones
   refreshFileList();
 
-  if (fileCount <= MAX_LOG_FILES / 2) return;  // plenty of space
+  if (fileCount <= MAX_LOG_FILES / 2)
+    return; // plenty of space
 
   // Delete excess files (oldest first — they appear first in directory listing)
   int toDelete = fileCount - (MAX_LOG_FILES / 2);
@@ -249,7 +268,8 @@ void sdLoggerPurgeOld(unsigned long nowMs) {
     snprintf(fullPath, sizeof(fullPath), SD_LOG_DIR "/%s", fileList[i]);
 
     // Don't delete the currently active log file
-    if (logging && strcmp(fullPath, logFilename) == 0) continue;
+    if (logging && strcmp(fullPath, logFilename) == 0)
+      continue;
 
     if (SD.remove(fullPath)) {
       myTympan.print("[SD] Purged: ");
