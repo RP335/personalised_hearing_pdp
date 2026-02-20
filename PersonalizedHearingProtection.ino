@@ -31,14 +31,14 @@
  * ============================================================================
  */
 
-#include "Config.h"
 #include "AudioGraph.h"
-#include "DSPManager.h"
-#include "NFCReader.h"
-#include "Metrics.h"
-#include "SDLogger.h"
 #include "BLESync.h"
+#include "Config.h"
+#include "DSPManager.h"
+#include "Metrics.h"
+#include "NFCReader.h"
 #include "OLEDDisplay.h"
+#include "SDLogger.h"
 #include "SerialControl.h"
 
 // ============================================================================
@@ -47,15 +47,22 @@
 
 enum SystemState {
   SYS_INIT,
-  SYS_WAITING,     // waiting for NFC card
-  SYS_PROCESSING   // profile loaded, DSP active
+  SYS_WAITING,   // waiting for NFC card
+  SYS_PROCESSING // profile loaded, DSP active
 };
 
 static SystemState sysState = SYS_INIT;
 
 // Timing
-static unsigned long lastNFCAction    = 0;
-static unsigned long lastSerialStats  = 0;
+static unsigned long lastNFCAction = 0;
+static unsigned long lastSerialStats = 0;
+
+void transitionToProcessing() {
+  sysState = SYS_PROCESSING;
+  displayFlash("PROFILE", "CUSTOM", 1500);
+  displaySetPage(PAGE_GAINS);
+  myTympan.println("[SYS] Custom Profile loaded -> PROCESSING");
+}
 
 // ============================================================================
 // POTENTIOMETER — Headphone volume (Tympan onboard knob)
@@ -65,15 +72,16 @@ void servicePotentiometer(unsigned long now) {
   static unsigned long lastUpdate = 0;
   static float prevVal = -1.0f;
 
-  if (now - lastUpdate < POT_SERVICE_INTERVAL_MS) return;
+  if (now - lastUpdate < POT_SERVICE_INTERVAL_MS)
+    return;
   lastUpdate = now;
 
   float val = (float)myTympan.readPotentiometer() / 1023.0f;
-  val = 0.1f * (float)((int)(10.0f * val + 0.5f));  // quantise to 0.1 steps
+  val = 0.1f * (float)((int)(10.0f * val + 0.5f)); // quantise to 0.1 steps
 
   if (fabsf(val - prevVal) > 0.05f) {
     prevVal = val;
-    float vol_dB = -40.0f + 50.0f * val;  // pot range: -40 to +10 dB
+    float vol_dB = -40.0f + 50.0f * val; // pot range: -40 to +10 dB
     myTympan.volume_dB(vol_dB);
   }
 }
@@ -83,14 +91,16 @@ void servicePotentiometer(unsigned long now) {
 // ============================================================================
 
 void serviceNFC(unsigned long now) {
-  if (!nfcPresent) return;
-  if (now - lastNFCAction < NFC_POLL_COOLDOWN_MS) return;
+  if (!nfcPresent)
+    return;
+  if (now - lastNFCAction < NFC_POLL_COOLDOWN_MS)
+    return;
 
   if (sysState == SYS_WAITING) {
     // --- Try to read a new audiogram card ---
     if (nfcPollForCard()) {
       // Card read successfully — apply profile
-      dspApplyProfile(leftThresholds);
+      dspApplyProfile(leftThresholds, rightThresholds);
 
       // Start SD logging for this user
       sdLoggerStart(currentUserUID);
@@ -104,15 +114,14 @@ void serviceNFC(unsigned long now) {
 
       myTympan.println("[SYS] Profile loaded → PROCESSING");
     }
-  }
-  else if (sysState == SYS_PROCESSING) {
+  } else if (sysState == SYS_PROCESSING) {
     // --- Re-tap card to toggle bypass ---
     if (nfcPollForToggle()) {
       if (dspFlags.nalrEnabled || dspFlags.wdrcEnabled) {
         dspSetBypass();
         displayFlash("BYPASS", nullptr, 800);
       } else {
-        dspApplyProfile(leftThresholds);
+        dspApplyProfile(leftThresholds, rightThresholds);
         displayFlash("NAL-R ON", nullptr, 800);
       }
       lastNFCAction = now;
@@ -195,7 +204,7 @@ void loop() {
 
   // --- SD raw audio writer service ---
   sdWriter.serviceSD_withWarnings(i2s_in);
-      
+
   // --- OLED display refresh (~10 FPS) ---
   displayUpdate(now);
 
@@ -206,7 +215,8 @@ void loop() {
   bleSyncService(now);
 
   // --- Periodic serial stats (every 3 s when processing) ---
-  if (sysState == SYS_PROCESSING && (now - lastSerialStats > SERIAL_STATS_INTERVAL_MS)) {
+  if (sysState == SYS_PROCESSING &&
+      (now - lastSerialStats > SERIAL_STATS_INTERVAL_MS)) {
     lastSerialStats = now;
     myTympan.printCPUandMemory(now, 0);
   }

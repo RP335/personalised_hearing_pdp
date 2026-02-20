@@ -466,7 +466,7 @@ void processSerialCommand(String c) {
     for (int i = 0; i < N_CHAN; i++) {
       if (i > 0)
         status += ",";
-      status += String(currentNALRGains[i], 1);
+      status += String(currentNALRGains_L[i], 1);
     }
     status += "]}";
     sendBLE("S:" + status);
@@ -505,12 +505,6 @@ void processSerialCommand(String c) {
 
 // --- SERVICE LOOP ---
 void bleSyncService(unsigned long nowMs) {
-  // 1. Check for incoming USB commands (instead of BLE)
-  if (Serial.available()) {
-    String cmd = Serial.readStringUntil('\n');
-    processSerialCommand(cmd);
-  }
-
   // 2. Stream Metrics to USB
   if (metricsStreamEnabled &&
       (nowMs - lastMetricsSend >= BLE_METRICS_SEND_MS)) {

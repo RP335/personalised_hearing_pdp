@@ -12,7 +12,9 @@
 #include "Config.h"
 
 void serialControlInit();
-void serialControlService();    // call from loop()
+void serialControlService(); // call from loop()
 void serialPrintHelp();
+
+extern void transitionToProcessing();
 
 #endif // SERIAL_CONTROL_H

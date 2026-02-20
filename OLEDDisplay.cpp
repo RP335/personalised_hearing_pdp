@@ -6,11 +6,11 @@
 
 #include "OLEDDisplay.h"
 #include "AudioGraph.h"
+#include "BLESync.h"
 #include "DSPManager.h"
 #include "Metrics.h"
 #include "NFCReader.h"
 #include "SDLogger.h"
-#include "BLESync.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -30,10 +30,10 @@ static unsigned long lastRefresh = 0;
 static bool heartbeat = false;
 
 // Flash overlay
-static bool     flashActive    = false;
-static char     flashLine1[32] = {0};
-static char     flashLine2[32] = {0};
-static unsigned long flashEnd  = 0;
+static bool flashActive = false;
+static char flashLine1[32] = {0};
+static char flashLine2[32] = {0};
+static unsigned long flashEnd = 0;
 
 // ============================================================================
 // DRAWING HELPERS
@@ -100,7 +100,8 @@ static void renderWaiting() {
   oled.println("8-Band WDRC+NAL-R");
   oled.println("Tympan Rev F");
   oled.println();
-  if (!nfcPresent) oled.print("(NFC not found)");
+  if (!nfcPresent)
+    oled.print("(NFC not found)");
 }
 
 static void renderReading() {
@@ -119,15 +120,17 @@ static void renderGains() {
   oled.setCursor(0, 16);
   oled.print("Gains (dB):");
 
-  const int barX    = 4;
-  const int barW    = 13;
-  const int barGap  = 2;
+  const int barX = 4;
+  const int barW = 13;
+  const int barGap = 2;
   const int barBase = 58;
   const int maxBarH = 28;
 
   for (int i = 0; i < N_CHAN; i++) {
-    int barH = (int)(currentNALRGains[i] / NALR_GAIN_CEILING * (float)maxBarH);
-    if (barH < 1 && currentNALRGains[i] > 0.5f) barH = 1;
+    int barH =
+        (int)(currentNALRGains_L[i] / NALR_GAIN_CEILING * (float)maxBarH);
+    if (barH < 1 && currentNALRGains_L[i] > 0.5f)
+      barH = 1;
 
     int x = barX + i * (barW + barGap);
     oled.drawRect(x, barBase - maxBarH, barW, maxBarH, SSD1306_WHITE);
@@ -136,7 +139,7 @@ static void renderGains() {
 
     if (i % 2 == 0) {
       oled.setCursor(x, 26);
-      oled.print((int)currentNALRGains[i]);
+      oled.print((int)currentNALRGains_L[i]);
     }
   }
 
@@ -267,8 +270,10 @@ void displayInit() {
 // ============================================================================
 
 void displayUpdate(unsigned long nowMs) {
-  if (!oledOK) return;
-  if (nowMs - lastRefresh < OLED_REFRESH_MS) return;
+  if (!oledOK)
+    return;
+  if (nowMs - lastRefresh < OLED_REFRESH_MS)
+    return;
   lastRefresh = nowMs;
 
   oled.clearDisplay();
@@ -287,14 +292,30 @@ void displayUpdate(unsigned long nowMs) {
   }
 
   switch (currentPage) {
-    case PAGE_SPLASH:   renderSplash();  break;
-    case PAGE_WAITING:  renderWaiting(); break;
-    case PAGE_READING:  renderReading(); break;
-    case PAGE_GAINS:    renderGains();   break;
-    case PAGE_SPL:      renderSPL();     break;
-    case PAGE_DOSE:     renderDose();    break;
-    case PAGE_STATUS:   renderStatus();  break;
-    default:            renderGains();   break;
+  case PAGE_SPLASH:
+    renderSplash();
+    break;
+  case PAGE_WAITING:
+    renderWaiting();
+    break;
+  case PAGE_READING:
+    renderReading();
+    break;
+  case PAGE_GAINS:
+    renderGains();
+    break;
+  case PAGE_SPL:
+    renderSPL();
+    break;
+  case PAGE_DOSE:
+    renderDose();
+    break;
+  case PAGE_STATUS:
+    renderStatus();
+    break;
+  default:
+    renderGains();
+    break;
   }
 
   oled.display();
@@ -304,24 +325,22 @@ void displayUpdate(unsigned long nowMs) {
 // CONTROL
 // ============================================================================
 
-void displaySetPage(DisplayPage page) {
-  currentPage = page;
-}
+void displaySetPage(DisplayPage page) { currentPage = page; }
 
 void displayNextPage() {
   int p = (int)currentPage + 1;
   // Skip splash/waiting/reading in rotation
-  if (p <= PAGE_READING) p = PAGE_GAINS;
-  if (p >= PAGE_COUNT)   p = PAGE_GAINS;
+  if (p <= PAGE_READING)
+    p = PAGE_GAINS;
+  if (p >= PAGE_COUNT)
+    p = PAGE_GAINS;
   currentPage = (DisplayPage)p;
 }
 
-DisplayPage displayGetPage() {
-  return currentPage;
-}
+DisplayPage displayGetPage() { return currentPage; }
 
 void displayFlash(const char *line1, const char *line2,
-                   unsigned long durationMs) {
+                  unsigned long durationMs) {
   strncpy(flashLine1, line1, sizeof(flashLine1) - 1);
   flashLine1[sizeof(flashLine1) - 1] = '\0';
 
