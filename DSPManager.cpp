@@ -35,13 +35,14 @@ static int8_t lastThresholds_R[N_AUDIO_FREQS] = {0};
 // Configure a single per-band WDRC compressor
 // NOTE: tkgain is always 0 now — NAL-R gain lives in bandGain_L/R[] blocks
 static void configureBandWDRC(AudioEffectCompWDRC_F32 &comp,
-                              float cr, float tk, float bolt) {
+                              float cr, float tk, float bolt) {  
   float expCR   = dspFlags.expansionEnabled ? WDRC_EXP_CR       : 1.0f;
   float expKnee = dspFlags.expansionEnabled ? WDRC_EXP_END_KNEE : 0.0f;
 
   comp.setSampleRate_Hz(audioSettings.sample_rate_Hz);
   comp.setParams(
-    WDRC_ATTACK_MS, WDRC_RELEASE_MS, WDRC_MAXDB,
+    WDRC_ATTACK_MS, WDRC_RELEASE_MS, 
+    MAX_DB_SPL,    // this sets the dB SPL of 0 dB FS, i.e. the reference for the compressor knee and threshold parameters
     expCR, expKnee,   // expansion (noise gate)
     0.0f,             // tkgain = 0 (gain handled by bandGain blocks)
     cr, tk, bolt
@@ -86,14 +87,14 @@ static void configureBBLimiter() {
   compBroadband_R.setSampleRate_Hz(fs);
 
   if (dspFlags.limiterEnabled) {
-    compBroadband_L.setParams(BB_ATTACK_MS, BB_RELEASE_MS, BB_MAXDB,
-                              1.0f, 0.0f, 0.0f, BB_CR, BB_TK, BB_BOLT);
-    compBroadband_R.setParams(BB_ATTACK_MS, BB_RELEASE_MS, BB_MAXDB,
-                              1.0f, 0.0f, 0.0f, BB_CR, BB_TK, BB_BOLT);
+    compBroadband_L.setParams(BB_ATTACK_MS, BB_RELEASE_MS, MAX_DB_SPL,
+                              1.0f, 0.0f, 0.0f, BB_CR, BB_MAXDB, BB_MAXDB);
+    compBroadband_R.setParams(BB_ATTACK_MS, BB_RELEASE_MS, MAX_DB_SPL,
+                              1.0f, 0.0f, 0.0f, BB_CR, BB_MAXDB, BB_MAXDB);
   } else {
-    compBroadband_L.setParams(BB_ATTACK_MS, BB_RELEASE_MS, BB_MAXDB,
+    compBroadband_L.setParams(BB_ATTACK_MS, BB_RELEASE_MS, MAX_DB_SPL,
                               1.0f, 0.0f, 0.0f, 1.0f, 119.0f, 119.0f);
-    compBroadband_R.setParams(BB_ATTACK_MS, BB_RELEASE_MS, BB_MAXDB,
+    compBroadband_R.setParams(BB_ATTACK_MS, BB_RELEASE_MS, MAX_DB_SPL,
                               1.0f, 0.0f, 0.0f, 1.0f, 119.0f, 119.0f);
   }
 }
@@ -135,6 +136,20 @@ void dspInit() {
   preGain_R.setGain_dB(currentPreGainDB);
 
   myTympan.println("[DSP] Filterbank + WDRC initialised (bypass mode)");
+
+  myTympan.println("[DSP] Threshold conversions (CAL_OFFSET_DB = " + 
+    String(CAL_OFFSET_DB, 2) + " dB):");
+  myTympan.print("  WDRC_TK: "); myTympan.print(WDRC_TK_ACTIVE);
+  myTympan.print(" dB SPL → "); myTympan.print(WDRC_TK_ACTIVE_DBFS, 1);
+  myTympan.println(" dB FS");
+
+  myTympan.print("  WDRC_BOLT: "); myTympan.print(WDRC_BOLT_ACTIVE);
+  myTympan.print(" dB SPL → "); myTympan.print(WDRC_BOLT_ACTIVE_DBFS, 1);
+  myTympan.println(" dB FS");
+
+  myTympan.print("  WDRC_EXP_END_KNEE: "); myTympan.print(WDRC_EXP_END_KNEE);
+  myTympan.print(" dB SPL → "); myTympan.print(WDRC_EXP_END_KNEE_DBFS, 1);
+  myTympan.println(" dB FS");
 }
 
 // ============================================================================
@@ -255,6 +270,8 @@ void dspSetBandBOLT(float bolt_dBSPL) {
   myTympan.print("[DSP] Band BOLT = ");
   myTympan.print(bolt_dBSPL);
   myTympan.println(" dB SPL");
+  myTympan.print(bolt_dBSPL - CAL_OFFSET_DB, 1);
+  myTympan.println(" dB FS)");
 }
 
 void dspSetBBCeiling(float bolt_dBSPL) {
@@ -268,6 +285,8 @@ void dspSetBBCeiling(float bolt_dBSPL) {
   myTympan.print("[DSP] BB ceiling = ");
   myTympan.print(bolt_dBSPL);
   myTympan.println(" dB SPL");
+  myTympan.print(bolt_dBSPL - CAL_OFFSET_DB, 1);
+  myTympan.println(" dB FS)");
 }
 
 // ============================================================================
@@ -289,6 +308,11 @@ void dspPrintStatus() {
   myTympan.print("  Pre-gain:  ");
   myTympan.print(currentPreGainDB);
   myTympan.println(" dB");
+  myTympan.print("  WDRC thresholds (effective): ");
+  myTympan.print(WDRC_TK_ACTIVE_DBFS, 1);
+  myTympan.print(" dB FS knee, ");
+  myTympan.print(WDRC_BOLT_ACTIVE_DBFS, 1);
+  myTympan.println(" dB FS ceiling");
 
   myTympan.print("  CPU: ");
   myTympan.print(AudioProcessorUsage());

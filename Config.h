@@ -41,6 +41,19 @@ constexpr float DEFAULT_INPUT_GAIN_DB = 0.0f;
 constexpr float DEFAULT_HEADPHONE_DB  = 0.0f;
 
 // ============================================================================
+// Level calibration
+// ============================================================================
+
+// Signal level at 0 dB input gain (line-in), 94 dB SPL = -XX.XX dB FS
+// ref: https://github.com/Tympan/Tympan_Library/blob/a4f4238e78f8e8f6261422efb41eade14847a19b/examples/02-Utility/SoundLevelMeter/SoundLevelMeter.ino#L44
+// --> adjust later accoding to actual measurements
+//constexpr float MIC_CAL_DBFS_AT_94SPL = -47.4f + 9.2175f; 
+constexpr float MIC_CAL_DBFS_AT_94SPL = -16.0f;
+constexpr float CAL_OFFSET_DB =
+    -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
+constexpr float MAX_DB_SPL = CAL_OFFSET_DB + 0.0f;  // dB SPL equivalent of 0 dB FS
+
+// ============================================================================
 // DSP — FILTERBANK (IIR BIQUAD)
 // ============================================================================
 #define N_CHAN 8              // number of frequency bands
@@ -76,7 +89,7 @@ constexpr uint16_t AUDIOGRAM_FREQS[11] = {
 // Per-band compressor
 constexpr float WDRC_ATTACK_MS    = 5.0f;
 constexpr float WDRC_RELEASE_MS   = 100.0f;   // smoother than 50 ms
-constexpr float WDRC_MAXDB        = 119.0f;
+constexpr float WDRC_MAXDB        = MAX_DB_SPL;
 
 // Expansion (noise gate) — suppresses codec noise floor
 constexpr float WDRC_EXP_CR       = 2.0f;     // expansion ratio (2:1 below knee)
@@ -86,16 +99,22 @@ constexpr float WDRC_CR_ACTIVE    = 2.0f;     // compression ratio when active
 constexpr float WDRC_CR_BYPASS    = 1.0f;     // unity (linear)
 constexpr float WDRC_TK_ACTIVE    = 55.0f;    // compression knee (dB SPL)
 constexpr float WDRC_TK_BYPASS    = 55.0f;
-constexpr float WDRC_BOLT_ACTIVE  = 119.0f;    // per-band output limit
-constexpr float WDRC_BOLT_BYPASS  = 90.0f;
+// BOLT stands for broadband output limiting threshold, i.e. the effective ceiling of the compressor output
+constexpr float WDRC_BOLT_ACTIVE  = 100.0f;    // per-band output limit
+constexpr float WDRC_BOLT_BYPASS  = 100.0f;
+
+// dB FS equivalents
+constexpr float WDRC_TK_ACTIVE_DBFS = WDRC_TK_ACTIVE - CAL_OFFSET_DB;
+constexpr float WDRC_BOLT_ACTIVE_DBFS = WDRC_BOLT_ACTIVE - CAL_OFFSET_DB;
+constexpr float WDRC_EXP_END_KNEE_DBFS = WDRC_EXP_END_KNEE - CAL_OFFSET_DB;
 
 // Broadband output limiter (safety ceiling — always on)
 constexpr float BB_ATTACK_MS  = 1.0f;
 constexpr float BB_RELEASE_MS = 50.0f;
-constexpr float BB_MAXDB      = 119.0f;
+constexpr float BB_MAXDB      = MAX_DB_SPL;  // absolute ceiling (dB SPL equivalent of 0 dB FS)
 constexpr float BB_CR         = 1.0f;
 constexpr float BB_TK         = 24.0f;
-constexpr float BB_BOLT       = 91.0f;
+constexpr float BB_BOLT       = 100.0f;
 
 // ============================================================================
 // DSP — ALGORITHM FEATURE FLAGS  (runtime-toggleable via serial/BLE)
@@ -162,9 +181,6 @@ struct DSPFlags {
 // ============================================================================
 // SOUND LEVEL METRICS
 // ============================================================================
-constexpr float MIC_CAL_DBFS_AT_94SPL = -47.4f + 9.2175f;
-constexpr float CAL_OFFSET_DB =
-    -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
 
 constexpr float TIME_CONST_FAST_SEC = 0.125f;
 constexpr float TIME_CONST_SLOW_SEC = 1.0f;
