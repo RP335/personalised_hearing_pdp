@@ -54,6 +54,7 @@ void serialPrintHelp() {
   myTympan.println("║    w   = toggle WDRC compression                ║");
   myTympan.println("║    l   = toggle broadband limiter               ║");
   myTympan.println("║    +/- = pre-gain ±3 dB                        ║");
+  myTympan.println("║    g <G> = set pre-gain (dB)                    ║");
   myTympan.println("║  DISPLAY:                                       ║");
   myTympan.println("║    d   = cycle OLED display page                ║");
   myTympan.println("║  SD CARD:                                       ║");
@@ -134,6 +135,15 @@ void serialControlService() {
     case '-':
       dspAdjustPreGain(-3.0f);
       break;
+    
+    case 'g': {
+      float g = line.substring(1).toFloat();
+      dspSetPreGain(g);
+      myTympan.print("[DSP] Pre-gain set to ");
+      myTympan.print(g, 1);
+      myTympan.println(" dB");
+      break;
+    }
 
     // --- Display ---
     case 'd':
