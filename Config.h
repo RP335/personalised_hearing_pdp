@@ -55,7 +55,7 @@ constexpr float CAL_OFFSET_DB =
     -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
 // constexpr float MAX_DB_SPL =
 //     CAL_OFFSET_DB + 0.0f; // dB SPL equivalent of 0 dB FS
-constexpr float MAX_DB_SPL = 99.0f;
+constexpr float MAX_DB_SPL = 101.35;
 
 // ============================================================================
 // DSP — FILTERBANK (IIR BIQUAD)

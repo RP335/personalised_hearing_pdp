@@ -69,23 +69,23 @@ void transitionToProcessing() {
 // POTENTIOMETER — Headphone volume (Tympan onboard knob)
 // ============================================================================
 
-void servicePotentiometer(unsigned long now) {
-  static unsigned long lastUpdate = 0;
-  static float prevVal = -1.0f;
+// void servicePotentiometer(unsigned long now) {
+//   static unsigned long lastUpdate = 0;
+//   static float prevVal = -1.0f;
 
-  if (now - lastUpdate < POT_SERVICE_INTERVAL_MS)
-    return;
-  lastUpdate = now;
+//   if (now - lastUpdate < POT_SERVICE_INTERVAL_MS)
+//     return;
+//   lastUpdate = now;
 
-  float val = (float)myTympan.readPotentiometer() / 1023.0f;
-  val = 0.1f * (float)((int)(10.0f * val + 0.5f)); // quantise to 0.1 steps
+//   float val = (float)myTympan.readPotentiometer() / 1023.0f;
+//   val = 0.1f * (float)((int)(10.0f * val + 0.5f)); // quantise to 0.1 steps
 
-  if (fabsf(val - prevVal) > 0.05f) {
-    prevVal = val;
-    float vol_dB = -40.0f + 50.0f * val; // pot range: -40 to +10 dB
-    myTympan.volume_dB(vol_dB);
-  }
-}
+//   if (fabsf(val - prevVal) > 0.05f) {
+//     prevVal = val;
+//     float vol_dB = -40.0f + 50.0f * val; // pot range: -40 to +10 dB
+//     myTympan.volume_dB(vol_dB);
+//   }
+// }
 
 // ============================================================================
 // NFC STATE MACHINE
@@ -178,8 +178,10 @@ void setup() {
   // --- BLE ---
   bleSyncInit();
 
+  myTympan.volume_dB(10.0f);
+
   // --- Initial pot reading ---
-  servicePotentiometer(millis());
+  // servicePotentiometer(millis());
 
   // --- Ready ---
   sysState = SYS_WAITING;
@@ -213,7 +215,7 @@ void loop() {
   displayUpdate(now);
 
   // --- Potentiometer (headphone volume) ---
-  servicePotentiometer(now);
+  // servicePotentiometer(now);
 
   // --- BLE service (advertising, commands, metrics stream) ---
   bleSyncService(now);
