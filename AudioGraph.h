@@ -67,3 +67,10 @@ extern AudioSDWriter_F32 sdWriter;
 void audioGraphInit();
 
 #endif // AUDIO_GRAPH_H
+
+
+#ifdef ENABLE_NOISE_REDUCTION
+  #include <AudioEffectNoiseReduction_FD_F32.h>  // from Tympan_Library
+  extern AudioEffectNoiseReduction_FD_F32 noiseReduction_L;
+  extern AudioEffectNoiseReduction_FD_F32 noiseReduction_R;
+#endif

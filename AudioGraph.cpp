@@ -64,7 +64,9 @@ AudioSDWriter_F32 sdWriter(audioSettings);
 
 // Input L → PreGain L → Filterbank L
 AudioConnection_F32 pc_in_L(i2s_in, 0, preGain_L, 0);
-AudioConnection_F32 pc_fb_L(preGain_L, 0, filterbank_L, 0);
+// AudioConnection_F32 pc_fb_L(preGain_L, 0, filterbank_L, 0);
+
+
 
 // Filterbank L outputs → per-band gain L
 AudioConnection_F32 pc_bg0_L(filterbank_L, 0, bandGain_L[0], 0);
@@ -105,7 +107,27 @@ AudioConnection_F32 pc_out_L(compBroadband_L, 0, i2s_out, 0);
 // ============================================================================
 
 AudioConnection_F32 pc_in_R(i2s_in, 1, preGain_R, 0);
-AudioConnection_F32 pc_fb_R(preGain_R, 0, filterbank_R, 0);
+// AudioConnection_F32 pc_fb_R(preGain_R, 0, filterbank_R, 0);
+
+#ifdef ENABLE_NOISE_REDUCTION
+  // NR audio objects
+  AudioEffectNoiseReduction_FD_F32 noiseReduction_L(audioSettings);
+  AudioEffectNoiseReduction_FD_F32 noiseReduction_R(audioSettings);
+ 
+  // Left: preGain → NR → filterbank
+  AudioConnection_F32 pc_nr_in_L(preGain_L,         0, noiseReduction_L, 0);
+  AudioConnection_F32 pc_fb_L   (noiseReduction_L,  0, filterbank_L,     0);
+ 
+  // Right: preGain → NR → filterbank
+  AudioConnection_F32 pc_nr_in_R(preGain_R,         0, noiseReduction_R, 0);
+  AudioConnection_F32 pc_fb_R   (noiseReduction_R,  0, filterbank_R,     0);
+#else
+  // Original direct path (no NR)
+  AudioConnection_F32 pc_fb_L(preGain_L, 0, filterbank_L, 0);
+  AudioConnection_F32 pc_fb_R(preGain_R, 0, filterbank_R, 0);
+#endif
+
+
 
 AudioConnection_F32 pc_bg0_R(filterbank_R, 0, bandGain_R[0], 0);
 AudioConnection_F32 pc_bg1_R(filterbank_R, 1, bandGain_R[1], 0);

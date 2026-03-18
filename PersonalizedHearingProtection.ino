@@ -40,6 +40,7 @@
 #include "OLEDDisplay.h"
 #include "SDLogger.h"
 #include "SerialControl.h"
+#include "NoiseReductionFD.h"
 
 // ============================================================================
 // SYSTEM STATE
@@ -149,6 +150,9 @@ void setup() {
 
   // --- DSP chain (filterbank, compressors) ---
   dspInit();
+  #ifdef ENABLE_NOISE_REDUCTION
+    nrInit();
+  #endif
 
   // --- I2C bus for NFC + OLED ---
   I2C_BUS.begin();

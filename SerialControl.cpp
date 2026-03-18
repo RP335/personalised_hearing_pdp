@@ -12,6 +12,9 @@
 #include "NFCReader.h"
 #include "OLEDDisplay.h"
 #include "SDLogger.h"
+#include "NoiseReductionFD.h"
+
+
 
 // Forward declaration for BLESync.cpp function
 extern void processSerialCommand(String c);
@@ -54,6 +57,11 @@ void serialPrintHelp() {
   myTympan.println("║    w   = toggle WDRC compression                ║");
   myTympan.println("║    l   = toggle broadband limiter               ║");
   myTympan.println("║    +/- = pre-gain ±3 dB                        ║");
+  myTympan.println("║  NOISE REDUCTION (compile with ENABLE_NOISE_REDUCTION):");
+  myTympan.println("║    N   = toggle noise reduction on/off             ║");
+  myTympan.println("║    F   = freeze/unfreeze noise estimate            ║");
+  myTympan.println("║    A   = print NR status                          ║");
+  myTympan.println("║    A <dB> = set NR max attenuation                ║");
   myTympan.println("║    g <G> = set pre-gain (dB)                    ║");
   myTympan.println("║  DISPLAY:                                       ║");
   myTympan.println("║    d   = cycle OLED display page                ║");
@@ -250,6 +258,29 @@ void serialControlService() {
       transitionToProcessing();
       break;
     }
+// #ifdef ENABLE_NOISE_REDUCTION
+    // --- Noise Reduction ---
+    case 'N':
+      nrToggle();
+      displayFlash("NOISE RED", nrState.enabled ? "ON" : "OFF");
+      break;
+ 
+    case 'F': {
+      // Freeze/unfreeze noise estimate
+      nrToggleNoiseEstUpdate();
+      displayFlash("NR EST", nrState.noiseEstUpdate ? "ADAPT" : "FROZEN");
+      break;
+    }
+ 
+    case 'A': {
+      // NR max attenuation: "A <dB>"  e.g. "A 20"
+      float atten = line.substring(1).toFloat();
+      if (atten > 0.0f) nrSetMaxAtten(atten);
+      else nrPrintStatus();  // bare 'A' prints NR status
+      break;
+    }
+// #endif
+
 
     default:
       break; // ignore newlines, etc.
