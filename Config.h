@@ -38,7 +38,7 @@ constexpr int AUDIO_MEM_F32 = 90; // F32 processing blocks (more for biquad FB)
 // INPUT CONFIGURATION
 // ============================================================================
 #define DEFAULT_INPUT_SOURCE TYMPAN_INPUT_JACK_AS_LINEIN
-constexpr float DEFAULT_INPUT_GAIN_DB = 0.0f;
+constexpr float DEFAULT_INPUT_GAIN_DB = 3.75f;
 constexpr float DEFAULT_HEADPHONE_DB = 0.0f;
 
 // ============================================================================
@@ -53,8 +53,9 @@ constexpr float DEFAULT_HEADPHONE_DB = 0.0f;
 constexpr float MIC_CAL_DBFS_AT_94SPL = -16.0f;
 constexpr float CAL_OFFSET_DB =
     -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
-constexpr float MAX_DB_SPL =
-    CAL_OFFSET_DB + 0.0f; // dB SPL equivalent of 0 dB FS
+// constexpr float MAX_DB_SPL =
+//     CAL_OFFSET_DB + 0.0f; // dB SPL equivalent of 0 dB FS
+constexpr float MAX_DB_SPL = 99.0f;
 
 // ============================================================================
 // DSP — FILTERBANK (IIR BIQUAD)
@@ -98,12 +99,12 @@ constexpr float WDRC_EXP_END_KNEE = 10.0f; // below 35 dB SPL → attenuate
 
 constexpr float WDRC_CR_ACTIVE = 2.0f;  // compression ratio when active
 constexpr float WDRC_CR_BYPASS = 1.0f;  // unity (linear)
-constexpr float WDRC_TK_ACTIVE = 55.0f; // compression knee (dB SPL)
-constexpr float WDRC_TK_BYPASS = 55.0f;
+constexpr float WDRC_TK_ACTIVE = 75.0f; // compression knee (dB SPL)
+constexpr float WDRC_TK_BYPASS = 75.0f;
 // BOLT stands for broadband output limiting threshold, i.e. the effective
 // ceiling of the compressor output
-constexpr float WDRC_BOLT_ACTIVE = 100.0f; // per-band output limit
-constexpr float WDRC_BOLT_BYPASS = 100.0f;
+constexpr float WDRC_BOLT_ACTIVE = 95.0f; // per-band output limit
+constexpr float WDRC_BOLT_BYPASS = 95.0f;
 
 // dB FS equivalents
 constexpr float WDRC_TK_ACTIVE_DBFS = WDRC_TK_ACTIVE - CAL_OFFSET_DB;
