@@ -49,13 +49,15 @@ constexpr float DEFAULT_HEADPHONE_DB = 0.0f;
 // ref:
 // https://github.com/Tympan/Tympan_Library/blob/a4f4238e78f8e8f6261422efb41eade14847a19b/examples/02-Utility/SoundLevelMeter/SoundLevelMeter.ino#L44
 // --> adjust later accoding to actual measurements
-// constexpr float MIC_CAL_DBFS_AT_94SPL = -47.4f + 9.2175f;
-constexpr float MIC_CAL_DBFS_AT_94SPL = -16.0f;
-constexpr float CAL_OFFSET_DB =
-    -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
+constexpr float MIC_CAL_DBFS_AT_94SPL = -47.4f + 9.2175f;
+// constexpr float MIC_CAL_DBFS_AT_94SPL = -16.0f;
+// constexpr float CAL_OFFSET_DB =
+//     -MIC_CAL_DBFS_AT_94SPL + 94.0f - DEFAULT_INPUT_GAIN_DB;
+
 // constexpr float MAX_DB_SPL =
 //     CAL_OFFSET_DB + 0.0f; // dB SPL equivalent of 0 dB FS
 constexpr float MAX_DB_SPL = 101.35;
+constexpr float CAL_OFFSET_DB = MAX_DB_SPL;
 
 // ============================================================================
 // DSP — FILTERBANK (IIR BIQUAD)
